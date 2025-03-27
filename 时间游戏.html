@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>时间借贷者 - 触屏版</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
+            font-family: 'Arial', sans-serif;
+            color: white;
+            overflow: hidden;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 90vw;
+            height: 60vh;
+            max-width: 800px;
+            max-height: 600px;
+        }
+
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            padding: 8px 20px;
+            border-radius: 20px;
+            display: flex;
+            gap: 15px;
+            backdrop-filter: blur(5px);
+            z-index: 10;
+            font-size: 14px;
+        }
+
+        #startScreen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            width: 80%;
+            max-width: 400px;
+            z-index: 100;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+        }
+
+        button {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: #2ecc71;
+            transform: scale(1.05);
+        }
+
+        /* 触屏按钮 */
+        .touch-controls {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+        }
+
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .control-btn:active {
+            background: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="hud">
+            <div>⏳ 时间: <span id="time">30</span></div>
+            <div>💸 债务: <span id="debt">0</span></div>
+            <div>🚩 关卡: <span id="level">1</span></div>
+        </div>
+        
+        <div id="startScreen">
+            <h1>时间借贷者</h1>
+            <p>你可以：</p>
+            <p>👉 **单击** 屏幕 **暂停时间**（会增加债务）。</p>
+            <p>👉 **长按** 屏幕 **窃取敌人时间**（获得时间但欠债）。</p>
+            <p>👉 **拖动手指** 控制角色移动。</p>
+            <button onclick="startGame()">开始游戏</button>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- 触摸控制 -->
+        <div class="touch-controls">
+            <div class="control-btn" id="pauseBtn">⏸</div>
+            <div class="control-btn" id="stealBtn">🔮</div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const startScreen = document.getElementById('startScreen');
+        const timeDisplay = document.getElementById('time');
+        const debtDisplay = document.getElementById('debt');
+        const levelDisplay = document.getElementById('level');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const stealBtn = document.getElementById('stealBtn');
+
+        canvas.width = 800;
+        canvas.height = 600;
+
+        let gameStarted = false;
+        let state = {
+            player: { x: 400, y: 300, size: 30 },
+            timeBalance: 30,
+            debt: 0,
+            isTimeStop: false,
+            level: 1
+        };
+
+        function startGame() {
+            startScreen.style.display = 'none';
+            gameStarted = true;
+            requestAnimationFrame(update);
+        }
+
+        function update() {
+            if (!gameStarted) return;
+            state.timeBalance -= 0.02;
+            if (state.timeBalance <= 0) endGame("时间耗尽！");
+            draw();
+            requestAnimationFrame(update);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#2ecc71";
+            ctx.beginPath();
+            ctx.arc(state.player.x, state.player.y, state.player.size / 2, 0, Math.PI * 2);
+            ctx.fill();
+            timeDisplay.textContent = state.timeBalance.toFixed(1);
+            debtDisplay.textContent = state.debt.toFixed(1);
+            levelDisplay.textContent = state.level;
+        }
+
+        function endGame(message) {
+            alert(message);
+            gameStarted = false;
+            startScreen.style.display = "block";
+        }
+
+        pauseBtn.addEventListener("click", () => {
+            if (!gameStarted) return;
+            state.isTimeStop = !state.isTimeStop;
+            if (state.isTimeStop) {
+                state.debt += 5;
+                state.timeBalance += 5;
+            }
+        });
+
+        stealBtn.addEventListener("touchstart", () => {
+            if (!gameStarted) return;
+            state.timeBalance += 3;
+            state.debt += 1;
+        });
+
+        document.addEventListener("touchmove", (e) => {
+            if (!gameStarted) return;
+            const touch = e.touches[0];
+            state.player.x = touch.clientX;
+            state.player.y = touch.clientY;
+        });
+
+        draw();
+    </script>
+</body>
+</html>
